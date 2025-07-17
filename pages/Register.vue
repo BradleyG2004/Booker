@@ -54,7 +54,9 @@
                     </div>
                     <button class="btn btn-primary w-full mb-2">Sign up</button>
                     <div class="divider">or</div>
-                    <div class="g-signin2 mb-2" data-onsuccess="onSignIn"></div>
+                    <div class="w-full mt-2 flex justify-center">
+                        <div class="g-signin2" data-onsuccess="onSignIn" data-theme="light"></div>
+                    </div>
                 </form>
             </div>
             <!-- Illustration -->
@@ -66,15 +68,32 @@
 </template>
 
 <script setup>
-import { useHead } from '#imports'
 import { ref } from 'vue'
-useHead({
-    script: [
-        { src: 'https://apis.google.com/js/platform.js', async: true, defer: true }
-    ]
-})
+import { onMounted } from 'vue'
+
 const showPassword = ref(false)
 const password = ref('')
+
+onMounted(() => {
+  // Définir la fonction globale attendue par Google
+  window.onSignIn = (googleUser) => {
+    const profile = googleUser.getBasicProfile()
+    console.log('ID: ' + profile.getId())
+    console.log('Name: ' + profile.getName())
+    console.log('Image URL: ' + profile.getImageUrl())
+    console.log('Email: ' + profile.getEmail())
+
+    // 👇 Optionnel : envoie le token à ton backend
+    // const id_token = googleUser.getAuthResponse().id_token
+    // console.log('ID Token:', id_token)
+
+    // Exemple : envoie du token à ton backend
+    // await $fetch('/api/auth/google', {
+    //   method: 'POST',
+    //   body: { id_token }
+    // })
+  }
+})
 
 function onSignIn(googleUser) {
     alert('Google Sign-In clicked! (check the console)');
