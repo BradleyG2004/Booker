@@ -54,10 +54,7 @@
                     </div>
                     <button class="btn btn-primary w-full mb-2">Log me in</button>
                     <div class="divider">or</div>
-                    <button class="btn btn-outline w-full mb-2">
-                        <span class="mr-2"><i class="fa fa-google"></i></span>
-                        Log in with Google
-                    </button>
+                    <div class="g-signin2" data-onsuccess="onLogIn"></div>
                 </form>
             </div>
             <!-- Illustration -->
@@ -67,10 +64,24 @@
         </div>
     </div>
 </template>
-
+<!-- <script src="https://apis.google.com/js/platform.js" async defer></script> -->
 <script setup>
+
 import { ref } from 'vue'
+import { useHead } from '#imports'
+useHead({
+  script: [
+    { src: 'https://apis.google.com/js/platform.js', async: true, defer: true }
+  ]
+})
 const showPassword = ref(false)
 const password = ref('')
 // Pas de logique JS pour ce formulaire statique
+function onLogIn(googleUser) {
+  const profile = googleUser.getBasicProfile();
+  console.log('ID: ' + profile.getId());
+  console.log('Name: ' + profile.getName());
+  console.log('Image URL: ' + profile.getImageUrl());
+  console.log('Email: ' + profile.getEmail());
+}
 </script>
