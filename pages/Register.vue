@@ -75,24 +75,25 @@ const showPassword = ref(false)
 const password = ref('')
 
 onMounted(() => {
-  // Définir la fonction globale attendue par Google
-  window.onSignIn = (googleUser) => {
-    const profile = googleUser.getBasicProfile()
-    console.log('ID: ' + profile.getId())
-    console.log('Name: ' + profile.getName())
-    console.log('Image URL: ' + profile.getImageUrl())
-    console.log('Email: ' + profile.getEmail())
+    // Définir la fonction globale attendue par Google
+    window.onSignIn = (googleUser) => {
+        const profile = googleUser.getBasicProfile()
+        const idToken = googleUser.getAuthResponse().id_token
 
-    // 👇 Optionnel : envoie le token à ton backend
-    // const id_token = googleUser.getAuthResponse().id_token
-    // console.log('ID Token:', id_token)
+        console.log("ID Token:", idToken)
+        console.log("Email:", profile.getEmail())
+        console.log("Nom:", profile.getName())
 
-    // Exemple : envoie du token à ton backend
-    // await $fetch('/api/auth/google', {
-    //   method: 'POST',
-    //   body: { id_token }
-    // })
-  }
+        // 👇 Optionnel : envoie le token à ton backend
+        // const id_token = googleUser.getAuthResponse().id_token
+        // console.log('ID Token:', id_token)
+
+        // Exemple : envoie du token à ton backend
+        // await $fetch('/api/auth/google', {
+        //   method: 'POST',
+        //   body: { id_token }
+        // })
+    }
 })
 
 function onSignIn(googleUser) {
