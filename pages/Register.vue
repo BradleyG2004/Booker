@@ -67,6 +67,13 @@
 import { ref } from 'vue'
 import { useRuntimeConfig, navigateTo } from '#imports'
 
+onMounted(() => {
+  if (process.client && localStorage.getItem('token')) {
+    window.location.href = '/' // reload propre via location.href
+  }
+})
+
+
 const showPassword = ref(false)
 const password = ref('')
 const email = ref('')
