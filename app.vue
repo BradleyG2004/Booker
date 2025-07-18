@@ -3,5 +3,6 @@
 </script>
 
 <template>
+  <NuxtLoadingIndicator />
   <NuxtPage />
 </template>

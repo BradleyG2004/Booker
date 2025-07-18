@@ -1,2 +1,8 @@
 @import "tailwindcss";
 @plugin "daisyui";
+.booker-title {
+  color: #FC789F;
+  -webkit-text-stroke: 2px #000;
+  text-stroke: 2px #000;
+  font-family: 'Courier New', Courier, monospace;
+}

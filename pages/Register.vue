@@ -2,33 +2,30 @@
     <div class="min-h-screen flex items-center justify-center bg-base-200" style="background-color:#f9f6ed;">
         <div class="bg-base-100 rounded-2xl shadow-xl flex w-full max-w-4xl overflow-hidden">
             <!-- Formulaire -->
-            <div class="w-full md:w-1/2 py-4 px-7 flex flex-col justify-center">
-                <h1 class="text-3xl font-bold mb-2 text-center">Booker</h1>
-                <hr class="w-1/2 mx-auto mb-4" />
+            <div class="w-full md:w-3/4 py-4 px-7 flex flex-col justify-center" style="font-family: 'Courier New', Courier, monospace;">
+                <h1 class="text-3xl font-bold mb-2 text-center booker-title" style="color: #F9F6ED;">Booker</h1>
+                <hr class="w-1/2 mx-auto mb-4" style="color:#fc789f" />
                 <h2 class="text-2xl font-bold mb-2">Register</h2>
-                <p class="mb-6 text-sm">
-                    or <NuxtLink to="/login" style="color:#422AD5;font-weight: bold;">login</NuxtLink>
-                </p>
-                <form>
+                <form @submit="onSubmit">
                     <div class="mb-4">
                         <label class="label">
                             <span class="label-text">Email</span>
                         </label>
-                        <input type="text" placeholder="mike142@yourmail.com" class="input input-bordered w-full" />
+                        <input v-model="email" type="text" placeholder="mike142@yourmail.com" class="input input-bordered w-full" />
                     </div>
                     <div class="mb-2">
                         <label class="label">
                             <span class="label-text">Username</span>
                         </label>
-                        <input type="text" placeholder="Johnson Doe" class="input input-bordered w-full" />
+                        <input v-model="username" type="text" placeholder="Johnson Doe" class="input input-bordered w-full" />
                     </div>
                     <div class="mb-2">
                         <label class="label">
                             <span class="label-text">Password</span>
                         </label>
                         <div class="relative">
-                            <input :type="showPassword ? 'text' : 'password'" placeholder="********"
-                                class="input input-bordered w-full pr-10" v-model="password" />
+                            <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="********"
+                                class="input input-bordered w-full pr-10" />
                             <button type="button" @click="showPassword = !showPassword"
                                 class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
                                 <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -52,11 +49,10 @@
                         <input type="checkbox" class="checkbox checkbox-sm mr-2" />
                         <span class="text-sm">Remember me</span>
                     </div>
-                    <button class="btn btn-primary w-full mb-2">Sign up</button>
-                    <div class="divider">or</div>
-                    <div class="w-full mt-2 flex justify-center">
-                        <div class="g-signin2" data-onsuccess="onSignIn" data-theme="light"></div>
-                    </div>
+                    <button class="btn btn-primary w-full mb-2" type="submit">Sign up</button>
+                    <p class="mb-6 text-sm" style="justify-self: center;">
+                        or <NuxtLink to="/login" style="color:#422AD5;font-weight: bold;">login</NuxtLink>
+                    </p>
                 </form>
             </div>
             <!-- Illustration -->
@@ -69,39 +65,30 @@
 
 <script setup>
 import { ref } from 'vue'
-import { onMounted } from 'vue'
+import { useRuntimeConfig, navigateTo } from '#imports'
 
 const showPassword = ref(false)
 const password = ref('')
+const email = ref('')
+const username = ref('')
 
-onMounted(() => {
-    // Définir la fonction globale attendue par Google
-    window.onSignIn = (googleUser) => {
-        const profile = googleUser.getBasicProfile()
-        const idToken = googleUser.getAuthResponse().id_token
+const config = useRuntimeConfig()
 
-        console.log("ID Token:", idToken)
-        console.log("Email:", profile.getEmail())
-        console.log("Nom:", profile.getName())
-
-        // 👇 Optionnel : envoie le token à ton backend
-        // const id_token = googleUser.getAuthResponse().id_token
-        // console.log('ID Token:', id_token)
-
-        // Exemple : envoie du token à ton backend
-        // await $fetch('/api/auth/google', {
-        //   method: 'POST',
-        //   body: { id_token }
-        // })
-    }
-})
-
-function onSignIn(googleUser) {
-    alert('Google Sign-In clicked! (check the console)');
-    const profile = googleUser.getBasicProfile();
-    console.log('ID: ' + profile.getId());
-    console.log('Name: ' + profile.getName());
-    console.log('Image URL: ' + profile.getImageUrl());
-    console.log('Email: ' + profile.getEmail());
+const onSubmit = async (e) => {
+  e.preventDefault()
+  try {
+    const response = await $fetch(`${config.public.API_BASE_URL}/users/register`, {
+      method: 'POST',
+      body: {
+        email: email.value,
+        username: username.value,
+        password: password.value
+      }
+    })
+    alert('Inscription réussie !')
+    navigateTo('/login')
+  } catch (error) {
+    alert('Erreur lors de l’inscription')
+  }
 }
 </script>

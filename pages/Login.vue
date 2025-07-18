@@ -2,25 +2,16 @@
     <div class="min-h-screen flex items-center justify-center bg-base-200" style="background-color:#f9f6ed;">
         <div class="bg-base-100 rounded-2xl shadow-xl flex w-full max-w-4xl overflow-hidden">
             <!-- Formulaire -->
-            <div class="w-full md:w-1/2 py-4 px-7 flex flex-col justify-center">
-                <h1 class="text-3xl font-bold mb-2 text-center">Booker</h1>
-                <hr class="w-1/2 mx-auto mb-4" />
-                <h2 class="text-2xl font-bold mb-2">Log in</h2>
-                <p class="mb-6 text-sm">
-                    or <NuxtLink to="/register" style="color:#422AD5;font-weight: bold;">register</NuxtLink>
-                </p>
-                <form>
+            <div class="w-full md:w-3/4 py-4 px-7 flex flex-col justify-center" style="font-family: 'Courier New', Courier, monospace;">
+                <h1 class="text-3xl font-bold mb-2 text-center booker-title" style="color: #F9F6ED;">Booker</h1>
+                <hr class="w-1/2 mx-auto mb-4" style="color:#fc789f"/>
+                <h2 class="text-2xl font-bold mb-2 ">Log in</h2>
+                <form  @submit="onSubmit">
                     <div class="mb-4">
                         <label class="label">
                             <span class="label-text">Email</span>
                         </label>
-                        <input type="text" placeholder="mike142@yourmail.com" class="input input-bordered w-full" />
-                    </div>
-                    <div class="mb-2">
-                        <label class="label">
-                            <span class="label-text">Username</span>
-                        </label>
-                        <input type="text" placeholder="Johnson Doe" class="input input-bordered w-full" />
+                        <input v-model="email" type="text" placeholder="mike142@yourmail.com" class="input input-bordered w-full" />
                     </div>
                     <div class="mb-2">
                         <label class="label">
@@ -52,9 +43,11 @@
                         <input type="checkbox" class="checkbox checkbox-sm mr-2" />
                         <span class="text-sm">Remember me</span>
                     </div>
-                    <button class="btn btn-primary w-full mb-2">Log me in</button>
-                    <div class="divider">or</div>
-                    <div class="g-signin2" data-onsuccess="onLogIn"></div>
+                    <button class="btn btn-primary w-full mb-2" type="submit">Log me in</button>
+
+                    <p class="mb-6 text-sm" style="justify-self: center;">
+                        or <NuxtLink to="/register" style="color:#422AD5;font-weight: bold;">register</NuxtLink>
+                    </p>
                 </form>
             </div>
             <!-- Illustration -->
@@ -68,20 +61,29 @@
 <script setup>
 
 import { ref } from 'vue'
-import { useHead } from '#imports'
-useHead({
-  script: [
-    { src: 'https://apis.google.com/js/platform.js', async: true, defer: true }
-  ]
-})
+import { useRuntimeConfig, navigateTo } from '#imports'
+
 const showPassword = ref(false)
 const password = ref('')
-// Pas de logique JS pour ce formulaire statique
-function onLogIn(googleUser) {
-  const profile = googleUser.getBasicProfile();
-  console.log('ID: ' + profile.getId());
-  console.log('Name: ' + profile.getName());
-  console.log('Image URL: ' + profile.getImageUrl());
-  console.log('Email: ' + profile.getEmail());
+const email = ref('')
+
+const config = useRuntimeConfig()
+
+const onSubmit = async (e) => {
+  e.preventDefault()
+  try {
+    const response = await $fetch(`${config.public.API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      body: {
+        email: email.value,
+        password: password.value
+      }
+    })
+    localStorage.setItem('token', response.token)
+    alert('Login réussi !')
+    navigateTo('/')
+  } catch (error) {
+    alert('Erreur lors du Login')
+  }
 }
 </script>
