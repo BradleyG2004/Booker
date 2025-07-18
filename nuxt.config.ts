@@ -12,4 +12,5 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
   css: ["./assets/app.css"],
+  modules: ['@nuxt/ui']
 })

@@ -87,6 +87,7 @@ const onSubmit = async (e) => {
       }
     })
     localStorage.setItem('token', response.token)
+    
     alert('Login réussi !')
     navigateTo('/')
   } catch (error) {

@@ -3,6 +3,8 @@
 </script>
 
 <template>
-  <NuxtLoadingIndicator />
-  <NuxtPage />
+  <UApp>
+    <NuxtLoadingIndicator />
+    <NuxtPage />
+  </UApp>
 </template>
