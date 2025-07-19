@@ -65,7 +65,16 @@ function hasOverlap(date: string, currentSlot: { start: string; end: string }, e
 // Fonction pour obtenir les options d'heures de début valides pour un créneau (pas de chevauchement)
 function getValidStartOptions(date: string, slotIndex: number): string[] {
   const slot = slotsByDate.value[date]?.[slotIndex]
-  const endTime = slot?.end || '23:59'
+  const endTime = slot?.end
+  // Si la fin n'est pas définie, proposer toutes les heures de 00:00 à 23:30 (hors chevauchement)
+  if (!endTime) {
+    return timeOptions.value.filter(startTime => {
+      // On simule une fin fictive pour la validation de chevauchement
+      const testSlot = { start: startTime, end: '23:59' }
+      return !hasOverlap(date, testSlot, slotIndex)
+    })
+  }
+  // Sinon, logique habituelle
   return timeOptions.value.filter(startTime => {
     if (startTime >= endTime) return false
     const testSlot = { start: startTime, end: endTime }
@@ -173,6 +182,11 @@ async function submitDisponibilites(e: Event) {
         heure_fin: slot.end
       })
     }
+  }
+  // Vérifier si aucune disponibilité n'a été renseignée
+  if (disponibilites.length === 0) {
+    alert('Veuillez renseigner au moins une disponibilité avec un créneau horaire.')
+    return
   }
   // Récupérer le token
   const token = localStorage.getItem('token')
