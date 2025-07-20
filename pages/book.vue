@@ -31,10 +31,20 @@
                     </div>
                     <!-- Edit menu -->
                     <div class="relative ml-4">
-                        <UModal title="Modal without overlay">
-                            <UButton class="btn btn-primary w-full mb-2" type="submit" label="Book it" />
+                        <UModal title="Confirm your Informations 🔗">
+                            <UButton class="btn btn-primary w-full mb-2" type="button" label="Book it" @click="openModal(booking)" />
                             <template #body>
-                                <Placeholder class="h-48" />
+                                <form class="flex flex-col gap-3" @submit.prevent="submitClientForm">
+                                    <label class="flex flex-col text-sm font-medium">
+                                        Email
+                                        <input v-model="email" type="email" class="border rounded px-2 py-1 mt-1" required />
+                                    </label>
+                                    <label class="flex flex-col text-sm font-medium">
+                                        Name
+                                        <input v-model="name" type="text" class="border rounded px-2 py-1 mt-1" required />
+                                    </label>
+                                    <button type="submit" class="btn btn-primary mt-2">Envoyer</button>
+                                </form>
                             </template>
                         </UModal>
                     </div>
@@ -50,8 +60,29 @@ import { useRuntimeConfig } from '#imports'
 
 const config = useRuntimeConfig()
 
+// Typage correct pour les disponibilités
+interface Disponibilite {
+  date: string;
+  heure_debut: string;
+  heure_fin: string;
+}
+
+// Typage pour l'affichage enrichi
+interface BookingDisplay extends Disponibilite {
+  dayShort: string;
+  dayNum: number;
+  time: string;
+  title: string;
+  location: string;
+  dateAffichee: string;
+}
+
+const disponibilites = ref<Disponibilite[]>([])
+const selectedSlot = ref<Disponibilite | null>(null)
+const email = ref('')
+const name = ref('')
+
 // Récupération des disponibilités depuis l'API
-const disponibilites = ref([])
 onMounted(async () => {
     try {
         const token = localStorage.getItem('token')
@@ -64,28 +95,82 @@ onMounted(async () => {
     }
 })
 
+// Utility function to get local time range from UTC date and times
+function getLocalTimeRange(dateUTC: string, heure_debut: string, heure_fin: string): string {
+  const start = new Date(`${dateUTC.split('T')[0]}T${heure_debut}Z`)
+  const end = new Date(`${dateUTC.split('T')[0]}T${heure_fin}Z`)
+  return `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+}
+
+// Utility function to get local day info from UTC date and start time
+function getLocalDateInfo(dateUTC: string, heure_debut: string) {
+  const date = new Date(`${dateUTC.split('T')[0]}T${heure_debut}Z`)
+  return {
+    dayShort: date.toLocaleDateString(undefined, { weekday: 'short' }),
+    dayNum: date.getDate()
+  }
+}
+
 // Regrouper les disponibilités par mois pour l'affichage
 const groupedBookings = computed(() => {
-    const groups: Array<{ label: string, items: any[] }> = []
-    let lastMonth = ''
-    disponibilites.value.forEach(d => {
-        const dateObj = new Date(d.date)
-        const month = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' })
-        if (lastMonth !== month) {
-            groups.push({ label: month, items: [] })
-            lastMonth = month
-        }
-        groups[groups.length - 1].items.push({
-            ...d,
-            dayShort: dateObj.toLocaleString('default', { weekday: 'short' }),
-            dayNum: dateObj.getDate(),
-            time: `${d.heure_debut?.slice(0, 5)} - ${d.heure_fin?.slice(0, 5)}`,
-            title: 'Disponibilité',
-            location: 'Web conferencing details provided upon confirmation',
-        })
+  const groups: Array<{ label: string, items: BookingDisplay[] }> = []
+  let lastMonth = ''
+
+  disponibilites.value.forEach(d => {
+    console.log('Date brute backend:', d.date)
+    const fullStartDate = new Date(`${d.date.split('T')[0]}T${d.heure_debut}Z`)
+    const month = fullStartDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+
+    if (lastMonth !== month) {
+      groups.push({ label: month, items: [] })
+      lastMonth = month
+    }
+
+    groups[groups.length - 1].items.push({
+      ...d,
+      dayShort: fullStartDate.toLocaleDateString(undefined, { weekday: 'short' }),
+      dayNum: fullStartDate.getDate(),
+      dateAffichee: fullStartDate.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: getLocalTimeRange(d.date, d.heure_debut, d.heure_fin),
+      title: '3D Brand Audit',
+      location: 'Web conferencing details provided upon confirmation',
     })
-    return groups
+  })
+
+  return groups
 })
+
+// Fonction pour gérer la sélection d'un créneau
+function openModal(booking: Disponibilite) {
+  selectedSlot.value = booking
+}
+
+// Fonction pour gérer la soumission du formulaire
+async function submitClientForm(e: Event) {
+  e.preventDefault()
+  if (!selectedSlot.value) return
+  try {
+    await $fetch(`${config.public.API_BASE_URL}/clients/register`, {
+      method: 'POST',
+      body: {
+        email: email.value,
+        username: name.value,
+        date: selectedSlot.value.date,
+        heure_debut: selectedSlot.value.heure_debut,
+        heure_fin: selectedSlot.value.heure_fin
+      },
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    alert('Réservation envoyée !')
+    email.value = ''
+    name.value = ''
+    selectedSlot.value = null
+  } catch (err) {
+    alert('Erreur lors de la réservation')
+  }
+}
 </script>
 
 <style scoped>
