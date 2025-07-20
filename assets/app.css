@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 @plugin "daisyui";
+body{
+  cursor: url('/booker/public/image6.png'), auto;
+}
 .booker-title {
   color: #FC789F;
   -webkit-text-stroke: 2px #000;

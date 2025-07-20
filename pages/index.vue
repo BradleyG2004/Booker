@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
+const config = useRuntimeConfig()
 
 // Variables séparées pour chaque mode
 const disposMultiple = ref([])
@@ -58,6 +59,9 @@ function hasOverlap(date: string, currentSlot: { start: string; end: string }, e
   if (!slotsByDate.value[date]) return false
   return slotsByDate.value[date].some((slot, idx) => {
     if (idx === excludeIndex) return false
+    // Ignorer les créneaux vides
+    if (!slot.start || !slot.end) return false
+    if (!currentSlot.start || !currentSlot.end) return false
     return doSlotsOverlap(currentSlot, slot)
   })
 }
@@ -66,15 +70,23 @@ function hasOverlap(date: string, currentSlot: { start: string; end: string }, e
 function getValidStartOptions(date: string, slotIndex: number): string[] {
   const slot = slotsByDate.value[date]?.[slotIndex]
   const endTime = slot?.end
-  // Si la fin n'est pas définie, proposer toutes les heures de 00:00 à 23:30 (hors chevauchement)
+  const slots = slotsByDate.value[date] || []
+
+  // Si c'est le seul créneau de la date, proposer toutes les heures (en respectant la fin si déjà choisie)
+  if (slots.length === 1) {
+    return timeOptions.value.filter(startTime => {
+      if (endTime && startTime >= endTime) return false
+      return true
+    })
+  }
+
+  // Sinon, logique habituelle
   if (!endTime) {
     return timeOptions.value.filter(startTime => {
-      // On simule une fin fictive pour la validation de chevauchement
       const testSlot = { start: startTime, end: '23:59' }
       return !hasOverlap(date, testSlot, slotIndex)
     })
   }
-  // Sinon, logique habituelle
   return timeOptions.value.filter(startTime => {
     if (startTime >= endTime) return false
     const testSlot = { start: startTime, end: endTime }
@@ -124,8 +136,8 @@ function addSlot(date: string) {
   if (!slotsByDate.value[date]) {
     slotsByDate.value[date] = []
   }
-  // Par défaut, 09:00-09:30
-  slotsByDate.value[date].push({ start: '09:00', end: '09:30' })
+  // Par défaut, créneau vide
+  slotsByDate.value[date].push({ start: '', end: '' })
 }
 
 // Supprimer un créneau pour une date
@@ -176,10 +188,18 @@ async function submitDisponibilites(e: Event) {
   const disponibilites: Array<{ date: string; heure_debut: string; heure_fin: string }> = []
   for (const [date, slots] of Object.entries(slotsByDate.value)) {
     for (const slot of slots) {
+      // 🕒 Construire un objet Date avec la date + heure locale
+      const startUTC = new Date(`${date}T${slot.start}:00`)
+      const endUTC = new Date(`${date}T${slot.end}:00`)
+
+      // 👇 Convertir en heure UTC "HH:MM:SS"
+      const heure_debut = startUTC.toISOString().split('T')[1].split('.')[0] // HH:MM:SS
+      const heure_fin = endUTC.toISOString().split('T')[1].split('.')[0]
+
       disponibilites.push({
         date,
-        heure_debut: slot.start,
-        heure_fin: slot.end
+        heure_debut,
+        heure_fin
       })
     }
   }
@@ -195,7 +215,7 @@ async function submitDisponibilites(e: Event) {
     return
   }
   try {
-    await $fetch('/disponibilities/register', {
+    const resp = await $fetch(`${config.public.API_BASE_URL}/disponibilities/register`, {
       method: 'POST',
       body: disponibilites,
       headers: {
@@ -203,12 +223,18 @@ async function submitDisponibilites(e: Event) {
         'Content-Type': 'application/json'
       }
     })
+    console.log(resp)
     alert('Disponibilités enregistrées !')
     // Redirection ou reset si besoin
-    // router.push('/dashboard')
+    window.location.reload()
   } catch (err) {
     alert('Erreur lors de l\'enregistrement des disponibilités')
   }
+}
+
+function Logout() {
+  localStorage.removeItem('token')
+  router.push('/login')
 }
 </script>
 
@@ -259,7 +285,9 @@ async function submitDisponibilites(e: Event) {
             style="box-shadow: inset 0 0 2px 1px rgba(0,0,0,0.25);">
           </div>
         </div>
-
+        <button @click="Logout">
+          Logout
+        </button>
       </aside>
 
       <!-- Main dashboard -->
@@ -285,7 +313,7 @@ async function submitDisponibilites(e: Event) {
                 </div>
                 <label class="block text-sm font-medium text-gray-700" style="font-weight: bold;">Vous pouvez le faire
                   :</label>
-                <USelectMenu v-model="typeSelect" :items="items" class="w-48 shadow-2xl"
+                <USelectMenu v-model="typeSelect" :items="items" class="w-28 min-h-[40px] shadow-2xl"
                   style="margin:10px;width:70%" />
                 <div
                   style="border-radius: 5px;border-width: 1px;border-style: solid;padding: 10px;margin:10px;background-color:#f9f6ed;height:260px;"
@@ -311,13 +339,14 @@ async function submitDisponibilites(e: Event) {
                     <!-- Créneaux existants -->
                     <div v-for="(slot, slotIndex) in (slotsByDate[formatDate(new Date(date))] || [])" :key="slotIndex"
                       class="flex items-center gap-2 mb-2">
-                      <USelectMenu v-model="slot.start" :items="getValidStartOptions(formatDate(new Date(date)), slotIndex)"
+                      <USelectMenu v-model="slot.start"
+                        :items="getValidStartOptions(formatDate(new Date(date)), slotIndex)"
                         @update:model-value="updateSlot(formatDate(new Date(date)), slotIndex, 'start', $event)"
-                        class="w-24 shadow-2xl" />
+                        class="w-25 min-h-[30px] shadow-2xl" />
                       <span class="text-gray-500">-</span>
                       <USelectMenu v-model="slot.end" :items="getValidEndOptions(formatDate(new Date(date)), slotIndex)"
                         @update:model-value="updateSlot(formatDate(new Date(date)), slotIndex, 'end', $event)"
-                        class="w-24 shadow-2xl" />
+                        class="w-25 min-h-[30px] shadow-2xl" />
                       <button @click="removeSlot(formatDate(new Date(date)), slotIndex)"
                         class="text-red-500 hover:text-red-700" type="button">
                         ✕
@@ -341,11 +370,11 @@ async function submitDisponibilites(e: Event) {
                       class="flex items-center gap-2 mb-2">
                       <USelectMenu v-model="slot.start" :items="timeOptions"
                         @update:model-value="updateSlot(formatDate(date), slotIndex, 'start', $event)"
-                        class="w-24 shadow-2xl" />
+                        class="w-28 min-h-[40px] shadow-2xl" />
                       <span class="text-gray-500">-</span>
                       <USelectMenu v-model="slot.end" :items="timeOptions"
                         @update:model-value="updateSlot(formatDate(date), slotIndex, 'end', $event)"
-                        class="w-24 shadow-2xl" />
+                        class="w-28 min-h-[40px] shadow-2xl" />
                       <button @click="removeSlot(formatDate(date), slotIndex)" class="text-red-500 hover:text-red-700"
                         type="button">
                         ✕
