@@ -365,6 +365,8 @@ const meetingActions = [
   ]
 ]
 
+const activeSection = ref('planning') // planning par défaut
+
 defineExpose({ todayUserFriendly })
 </script>
 
@@ -377,7 +379,10 @@ defineExpose({ todayUserFriendly })
         <h1 class="text-3xl font-bold mb-2 text-center booker-title" style="color: #F9F6ED;">Booker</h1>
         <hr style="color:#fc789f"><br>
         <!-- Profil -->
-        <div class="flex items-center mb-8 shadow-2xl"
+        <div
+          class="flex items-center mb-8 shadow-2xl cursor-pointer"
+          :class="activeSection === 'profile' ? 'ring-2 ring-blue-500 bg-blue-50' : ''"
+          @click="activeSection = 'profile'"
           style="padding:5px;border-style: solid;border-width:1px;border-color:black;border-radius:5px;color:black;background-color: white;">
           <img src="../assets/image5.png" alt="avatar" class="w-12 h-12 rounded-full mr-4" />
           <div>
@@ -390,7 +395,10 @@ defineExpose({ todayUserFriendly })
           </div>
         </div>
 
-        <div class="flex items-center mb-8 shadow-2xl"
+        <div
+          class="flex items-center mb-8 shadow-2xl cursor-pointer"
+          :class="activeSection === 'planning' ? 'ring-2 ring-blue-500 bg-blue-50' : ''"
+          @click="activeSection = 'planning'"
           style="padding:5px;border-style: solid;border-width:1px;border-radius:5px;border-color:black;background-color: white;">
           <img src="../assets/image3.png" alt="avatar" class="w-12 h-12 rounded-full mr-4" />
           <div>
@@ -403,7 +411,10 @@ defineExpose({ todayUserFriendly })
           </div>
         </div>
 
-        <div class="flex items-center mb-8 shadow-2xl"
+        <div
+          class="flex items-center mb-8 shadow-2xl cursor-pointer"
+          :class="activeSection === 'rappels' ? 'ring-2 ring-blue-500 bg-blue-50' : ''"
+          @click="activeSection = 'rappels'"
           style="padding:5px;border-style: solid;border-width:1px;border-radius:5px;border-color:black;background-color: white;">
           <img src="../assets/image2.png" alt="avatar" class="w-12 h-12 rounded-full mr-4" />
           <div>
@@ -429,8 +440,8 @@ defineExpose({ todayUserFriendly })
             <div class="text-xs text-gray-500">Date du jour</div>
           </div>
         </div>
-        <!-- Calendrier principal (à remplacer par FullCalendar) -->
-        <div class=" rounded-2xl shadow-lg p-6 min-h-[600px] flex flex-row gap-6">
+        <!-- Sections dynamiques -->
+        <div v-if="activeSection === 'planning'" class="rounded-2xl shadow-lg p-6 min-h-[600px] flex flex-row gap-6" id="planning">
           <!-- Colonne formulaire (2/5) -->
           <div class="basis-3/6 flex flex-col justify-center">
             <form class="space-y-4" @submit.prevent="submitDisponibilites">
@@ -600,6 +611,103 @@ defineExpose({ todayUserFriendly })
                 Aucun meeting {{ activeFilter === 'upcoming' ? 'à venir' : activeFilter === 'pending' ? 'en attente' :
                   activeFilter === 'recurring' ? 'récurrent' : activeFilter === 'past' ? 'passé' : activeFilter ===
                     'cancelled' ? 'annulé' : '' }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="activeSection === 'rappels'" class="rounded-2xl shadow-lg p-6 min-h-[600px] flex flex-row gap-6" id="rappels">
+          <!-- Rappels content -->
+          <div class="basis-3/6 flex flex-col justify-center">
+            <h2 class="text-xl font-bold mb-4">
+              <center>Rappels</center>
+            </h2>
+            <div class="space-y-4">
+              <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h3 class="text-lg font-semibold mb-2">Rappel 1</h3>
+                <p class="text-sm text-gray-700">Contenu du rappel 1. Description, date, heure.</p>
+                <p class="text-xs text-gray-500 mt-1">Date: 2023-10-27</p>
+                <p class="text-xs text-gray-500">Heure: 10:00</p>
+              </div>
+              <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h3 class="text-lg font-semibold mb-2">Rappel 2</h3>
+                <p class="text-sm text-gray-700">Contenu du rappel 2. Description, date, heure.</p>
+                <p class="text-xs text-gray-500 mt-1">Date: 2023-10-28</p>
+                <p class="text-xs text-gray-500">Heure: 14:30</p>
+              </div>
+            </div>
+          </div>
+          <div class="basis-3/6 flex flex-col shadow-2xl"
+            style="border-color:#3b25c1;border-width: 2px;border-style: solid;border-radius: 3px;padding:10px;">
+            <div
+              class="w-3 h-1 rounded-full border border-rose-800 flex items-center justify-center ml-auto bg-[#f9f6ed]"
+              style="border-width: 2px;">
+            </div>
+            <h2 class="text-2xl font-bold mb-1 text-center booker-subtitle">
+              <center>
+                Rappels
+              </center>
+            </h2>
+            <div class="space-y-3 max-h-96 overflow-y-auto" style="overflow-y: scroll;">
+              <div v-for="reminder in [
+                { id: 1, title: 'Rappel 1', date: '2023-10-27', time: '10:00', type: 'Important' },
+                { id: 2, title: 'Rappel 2', date: '2023-10-28', time: '14:30', type: 'Urgent' }
+              ]" :key="reminder.id" class="bg-white rounded-lg p-4 shadow-sm flex items-center space-x-4">
+                <div class="flex flex-col items-center w-16">
+                  <span class="text-xs font-bold text-orange-500">{{ new Date(reminder.date).toLocaleDateString(undefined, { weekday: 'short' }) }}</span>
+                  <span class="text-lg font-bold text-orange-500">{{ new Date(reminder.date).getDate() }}</span>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center space-x-2 mb-1">
+                    <i class="i-heroicons-clock text-gray-400 text-sm"></i>
+                    <span class="text-sm font-semibold">{{ reminder.time }}</span>
+                  </div>
+                  <div class="text-sm font-medium">{{ reminder.title }}</div>
+                  <div class="text-xs text-gray-400 mt-1">{{ reminder.type }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="activeSection === 'profile'" class="rounded-2xl shadow-lg p-6 min-h-[600px] flex flex-row gap-6" id="profile">
+          <!-- Profile content -->
+          <div class="basis-3/6 flex flex-col justify-center">
+            <h2 class="text-xl font-bold mb-4">
+              <center>Profile</center>
+            </h2>
+            <div class="space-y-4">
+              <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h3 class="text-lg font-semibold mb-2">Informations Personnelles</h3>
+                <p class="text-sm text-gray-700">Nom: Antonio Larentio</p>
+                <p class="text-sm text-gray-700">Email: antonio.larentio@example.com</p>
+                <p class="text-sm text-gray-700">Téléphone: +33 6 12 34 56 78</p>
+              </div>
+              <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h3 class="text-lg font-semibold mb-2">Paramètres</h3>
+                <p class="text-sm text-gray-700">Langue: Français</p>
+                <p class="text-sm text-gray-700">Thème: Clair</p>
+              </div>
+            </div>
+          </div>
+          <div class="basis-3/6 flex flex-col shadow-2xl"
+            style="border-color:#3b25c1;border-width: 2px;border-style: solid;border-radius: 3px;padding:10px;">
+            <div
+              class="w-3 h-1 rounded-full border border-rose-800 flex items-center justify-center ml-auto bg-[#f9f6ed]"
+              style="border-width: 2px;">
+            </div>
+            <h2 class="text-2xl font-bold mb-1 text-center booker-subtitle">
+              <center>
+                Profile
+              </center>
+            </h2>
+            <div class="space-y-3 max-h-96 overflow-y-auto" style="overflow-y: scroll;">
+              <div class="bg-white rounded-lg p-4 shadow-sm flex items-center space-x-4">
+                <div class="flex flex-col items-center w-16">
+                  <span class="text-xs font-bold text-orange-500">👤</span>
+                  <span class="text-lg font-bold text-orange-500">Profile</span>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm text-gray-700">Votre profil d'utilisateur. Gérez vos informations personnelles et vos paramètres.</p>
+                </div>
               </div>
             </div>
           </div>
