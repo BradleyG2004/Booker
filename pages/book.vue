@@ -12,7 +12,7 @@
             <div v-for="(group, groupIndex) in groupedBookings" :key="groupIndex" class="mb-8">
                 <div v-if="group.label" class="text-xs text-gray-400 font-bold uppercase mb-2">{{ group.label }}</div>
                 <div v-for="(booking, i) in group.items" :key="i"
-                    class="bg-white rounded-xl border border-gray-100 shadow-sm flex items-center px-4 py-3 mb-3 relative"
+                    class="bg-white rounded-xl border border-gray-100 shadow-2xl flex items-center px-4 py-3 mb-3 relative"
                     style="border-color: black;">
                     <!-- Date -->
                     <div class="flex flex-col items-center w-14 mr-4">
@@ -59,6 +59,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRuntimeConfig } from '#imports'
 
 const config = useRuntimeConfig()
+const toast = useToast()
 
 // Typage correct pour les disponibilités
 interface Disponibilite {
@@ -90,8 +91,10 @@ onMounted(async () => {
             headers: { Authorization: `Bearer ${token}` }
         })
         disponibilites.value = Array.isArray(res) ? res : []
+        console.log('Disponibilités reçues de l\'API:', disponibilites.value)
     } catch (e) {
         disponibilites.value = []
+        console.error('Erreur lors de la récupération des disponibilités:', e)
     }
 })
 
@@ -116,7 +119,13 @@ const groupedBookings = computed(() => {
   const groups: Array<{ label: string, items: BookingDisplay[] }> = []
   let lastMonth = ''
 
-  disponibilites.value.forEach(d => {
+  // Filtrer uniquement les disponibilités disponibles
+  const disponibles = disponibilites.value.filter((d: any) => d.available === true)
+  console.log('Nombre total de disponibilités:', disponibilites.value.length)
+  console.log('Nombre de disponibilités disponibles:', disponibles.length)
+  console.log('Disponibilités disponibles:', disponibles)
+
+  disponibles.forEach(d => {
     console.log('Date brute backend:', d.date)
     const fullStartDate = new Date(`${d.date.split('T')[0]}T${d.heure_debut}Z`)
     const month = fullStartDate.toLocaleString('default', { month: 'long', year: 'numeric' })
@@ -155,20 +164,25 @@ async function submitClientForm(e: Event) {
       body: {
         email: email.value,
         username: name.value,
-        date: selectedSlot.value.date,
-        heure_debut: selectedSlot.value.heure_debut,
-        heure_fin: selectedSlot.value.heure_fin
+        id: (selectedSlot.value as any).id
       },
       headers: {
         'Content-Type': 'application/json'
       }
     })
-    alert('Réservation envoyée !')
+    toast.add({
+      title: 'Réservation envoyée !',
+      color: 'primary'
+    })
     email.value = ''
     name.value = ''
     selectedSlot.value = null
+    window.location.reload()
   } catch (err) {
-    alert('Erreur lors de la réservation')
+    toast.add({
+      title: 'Erreur lors de la réservation',
+      color: 'error'
+    })
   }
 }
 </script>

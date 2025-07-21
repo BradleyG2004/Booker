@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 const config = useRuntimeConfig()
+const toast = useToast()
 
 // Variables séparées pour chaque mode
 const disposMultiple = ref([])
@@ -205,13 +206,19 @@ async function submitDisponibilites(e: Event) {
   }
   // Vérifier si aucune disponibilité n'a été renseignée
   if (disponibilites.length === 0) {
-    alert('Veuillez renseigner au moins une disponibilité avec un créneau horaire.')
+    toast.add({
+      title: 'Veuillez renseigner au moins une disponibilité avec un créneau horaire.',
+      color: 'error'
+    })
     return
   }
   // Récupérer le token
   const token = localStorage.getItem('token')
   if (!token) {
-    alert('Utilisateur non authentifié')
+    toast.add({
+      title: 'Utilisateur non authentifié',
+      color: 'error'
+    })
     return
   }
   try {
@@ -224,11 +231,17 @@ async function submitDisponibilites(e: Event) {
       }
     })
     console.log(resp)
-    alert('Disponibilités enregistrées !')
+    toast.add({
+      title: 'Disponibilités enregistrées !',
+      color: 'primary'
+    })
     // Redirection ou reset si besoin
     window.location.reload()
   } catch (err) {
-    alert('Erreur lors de l\'enregistrement des disponibilités')
+    toast.add({
+      title: 'Erreur lors de l\'enregistrement des disponibilités',
+      color: 'error'
+    })
   }
 }
 
@@ -236,6 +249,123 @@ function Logout() {
   localStorage.removeItem('token')
   router.push('/login')
 }
+
+// Date locale user-friendly
+const todayUserFriendly = computed(() => {
+  return new Date().toLocaleDateString(undefined, {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  })
+})
+
+// Filtres de meetings
+const activeFilter = ref('all')
+const meetingFilters = [
+  { id: 'all', label: 'All' },
+  { id: 'available', label: 'Available' },
+  { id: 'booked', label: 'Booked' },
+]
+
+// Créneaux depuis la base de données
+const disponibilites = ref<any[]>([])
+
+// Récupération des disponibilités depuis l'API
+onMounted(async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await $fetch(`${config.public.API_BASE_URL}/disponibilities`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    disponibilites.value = Array.isArray(res) ? res : []
+    console.log('Disponibilités reçues de l\'API:', disponibilites.value)
+  } catch (e) {
+    disponibilites.value = []
+    console.error('Erreur lors de la récupération des disponibilités:', e)
+  }
+})
+
+// Utility function to get local time range from UTC date and times
+function getLocalTimeRange(dateUTC: string, heure_debut: string, heure_fin: string): string {
+  const start = new Date(`${dateUTC.split('T')[0]}T${heure_debut}Z`)
+  const end = new Date(`${dateUTC.split('T')[0]}T${heure_fin}Z`)
+  return `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+}
+
+// Fonctions helper pour améliorer la lisibilité
+function isAvailableSlot(d: any): boolean {
+  return d.available === true && d.reserved_by === null
+}
+
+function isBookedSlot(d: any): boolean {
+  return d.reserved_by !== null
+}
+
+// Créneaux filtrés selon le statut
+const filteredMeetings = computed(() => {
+  let filtered = disponibilites.value
+
+  // Ajoute ce log ici pour voir la valeur de d.reserved_by
+  console.log('Valeurs de reserved_by reçues:', disponibilites.value.map((d: any) => ({ id: d.id, reserved_by: d.reserved_by, type: typeof d.reserved_by })))
+
+  if (activeFilter.value === 'available') {
+    filtered = disponibilites.value.filter(isAvailableSlot)
+  } else if (activeFilter.value === 'booked') {
+    filtered = disponibilites.value.filter(isBookedSlot)
+  }
+  // 'all' affiche tout
+
+  return filtered.map((d: any) => {
+    const fullStartDate = new Date(`${d.date.split('T')[0]}T${d.heure_debut}Z`)
+    return {
+      id: d.id,
+      dayShort: fullStartDate.toLocaleDateString(undefined, { weekday: 'short' }),
+      dayNum: fullStartDate.getDate(),
+      time: getLocalTimeRange(d.date, d.heure_debut, d.heure_fin),
+      title: d.reserved_by ? `Meeting réservé par ${d.client_name || 'Client'}` : 'Créneau disponible',
+      location: 'Web conferencing details provided upon confirmation',
+      status: d.reserved_by !== null ? 'booked' : 'available',
+      hasConflict: false,
+      available: d.available,
+      reserved_by: d.reserved_by,
+      client_name: d.client_name,
+      client_email: d.client_email
+    }
+  })
+})
+
+// Actions pour les meetings
+const meetingActions = [
+  [
+    {
+      label: 'Reschedule booking',
+      icon: 'i-heroicons-clock',
+      click: () => console.log('Reschedule')
+    },
+    {
+      label: 'Request reschedule',
+      icon: 'i-heroicons-paper-airplane',
+      click: () => console.log('Request reschedule')
+    },
+    {
+      label: 'Edit location',
+      icon: 'i-heroicons-map-pin',
+      click: () => console.log('Edit location')
+    },
+    {
+      label: 'Invite people',
+      icon: 'i-heroicons-user-plus',
+      click: () => console.log('Invite people')
+    }
+  ],
+  [
+    {
+      label: 'Cancel event',
+      icon: 'i-heroicons-x-mark',
+      click: () => console.log('Cancel event')
+    }
+  ]
+]
+
+defineExpose({ todayUserFriendly })
 </script>
 
 <template>
@@ -285,7 +415,7 @@ function Logout() {
             style="box-shadow: inset 0 0 2px 1px rgba(0,0,0,0.25);">
           </div>
         </div>
-        <button @click="Logout">
+        <button @click="Logout" style="color: #3B25C1;font-weight: bold;font-style: italic;">
           Logout
         </button>
       </aside>
@@ -295,7 +425,7 @@ function Logout() {
         <!-- Header calendrier -->
         <div class="flex items-center justify-between mb-6">
           <div>
-            <div class="text-2xl font-bold text-black">JJ/MM/YY</div>
+            <div class="text-2xl font-bold text-black">{{ todayUserFriendly }}</div>
             <div class="text-xs text-gray-500">Date du jour</div>
           </div>
         </div>
@@ -304,7 +434,9 @@ function Logout() {
           <!-- Colonne formulaire (2/5) -->
           <div class="basis-3/6 flex flex-col justify-center">
             <form class="space-y-4" @submit.prevent="submitDisponibilites">
-              <h2 class="text-xl font-bold mb-4">Ajouter une/des disponibilité(s)</h2>
+              <h2 class="text-xl font-bold mb-4">
+                <center>Add Time slots👇</center>
+              </h2>
               <div
                 style="border-radius: 5px;border-width: 2px;border-style: solid;padding: 10px;border-color: #fc789f;">
                 <div
@@ -394,11 +526,81 @@ function Logout() {
               <button class="btn btn-primary w-full mb-2" type="submit">Submit</button>
             </form>
           </div>
+
           <!-- Colonne calendrier (3/5) -->
-          <div class="basis-3/6 flex flex-col justify-center">
-            <div class="h-full w-full flex items-center justify-center">
-              <span class="text-gray-400">Calendrier interactif à intégrer ici</span>
-              <!-- <FullCalendar ... /> -->
+          <div class="basis-3/6 flex flex-col shadow-2xl"
+            style="border-color:#3b25c1;border-width: 2px;border-style: solid;border-radius: 3px;padding:10px;">
+            <div
+              class="w-3 h-1 rounded-full border border-rose-800 flex items-center justify-center ml-auto bg-[#f9f6ed]"
+              style="border-width: 2px;">
+            </div>
+            <h2 class="text-2xl font-bold mb-1 text-center booker-subtitle">
+              <center>
+                Meetings & Dispos
+              </center>
+            </h2>
+
+            <!-- Filtres -->
+            <center>
+              <div class="flex space-x-1 mb-4 shadow-2xl mx-auto w-fit"
+                style="background-color: #F9F6ED;border-color:#fc789f;border-width: 2px;border-style: solid;padding: 5px;margin: 5px;border-radius: 5px;">
+                <button class="shadow-2xl" style="color: black;font-weight: bold;" v-for="filter in meetingFilters"
+                  :key="filter.id" @click="activeFilter = filter.id" :class="[
+                    'px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                    activeFilter === filter.id
+                      ? 'bg-white text-blue-600'
+                      : 'text-white hover:bg-white/10'
+                  ]">
+                  {{ filter.label }}
+                </button>
+              </div>
+            </center>
+
+            <!-- Liste des meetings -->
+            <div class="space-y-3 max-h-96 overflow-y-auto" style="overflow-y: scroll;">
+              <div v-for="meeting in filteredMeetings" :key="meeting.id"
+                class="bg-white rounded-lg p-4 shadow-sm flex items-center space-x-4">
+                <!-- Date -->
+                <div class="flex flex-col items-center w-16">
+                  <span class="text-xs font-bold text-orange-500">{{ meeting.dayShort }}</span>
+                  <span class="text-lg font-bold text-orange-500">{{ meeting.dayNum }}</span>
+                </div>
+
+                <!-- Infos meeting -->
+                <div class="flex-1">
+                  <div class="flex items-center space-x-2 mb-1">
+                    <i class="i-heroicons-clock text-gray-400 text-sm"></i>
+                    <span class="text-sm font-semibold">{{ meeting.time }}</span>
+                    <span v-if="meeting.hasConflict" class="text-orange-500 text-xs">⚠</span>
+                  </div>
+                  <div class="text-sm font-medium">{{ meeting.title }}</div>
+                  <div class="flex items-center text-xs text-gray-400 mt-1">
+                    <i class="i-heroicons-map-pin mr-1"></i>
+                    <span>{{ meeting.location }}</span>
+                  </div>
+                  <!-- Informations client pour les créneaux réservés -->
+                  <div v-if="meeting.client_name && meeting.client_email" class="text-xs text-blue-600 mt-1">
+                    <i class="i-heroicons-user mr-1"></i>
+                    <span>🔖{{ meeting.client_name }} ({{ meeting.client_email }})</span>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="relative">
+                  <UDropdown :items="meetingActions">
+                    <UButton color="neutral" variant="outline" size="sm" trailing-icon="i-heroicons-chevron-down">
+                      Edit
+                    </UButton>
+                  </UDropdown>
+                </div>
+              </div>
+
+              <!-- Message si aucun meeting -->
+              <div v-if="filteredMeetings.length === 0" class="text-center text-white/70 py-8">
+                Aucun meeting {{ activeFilter === 'upcoming' ? 'à venir' : activeFilter === 'pending' ? 'en attente' :
+                  activeFilter === 'recurring' ? 'récurrent' : activeFilter === 'past' ? 'passé' : activeFilter ===
+                    'cancelled' ? 'annulé' : '' }}
+              </div>
             </div>
           </div>
         </div>

@@ -73,13 +73,13 @@ onMounted(() => {
   }
 })
 
-
 const showPassword = ref(false)
 const password = ref('')
 const email = ref('')
 const username = ref('')
 
 const config = useRuntimeConfig()
+const toast = useToast()
 
 const onSubmit = async (e) => {
   e.preventDefault()
@@ -92,10 +92,16 @@ const onSubmit = async (e) => {
         password: password.value
       }
     })
-    alert('Inscription réussie !')
+    toast.add({
+      title: 'Inscription réussie !',
+      color: 'primary'
+    })
     navigateTo('/login')
   } catch (error) {
-    alert('Erreur lors de l’inscription')
+    toast.add({
+      title: 'Erreur lors de l\'inscription',
+      color: 'error'
+    })
   }
 }
 </script>

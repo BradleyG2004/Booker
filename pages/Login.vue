@@ -75,6 +75,7 @@ const password = ref('')
 const email = ref('')
 
 const config = useRuntimeConfig()
+const toast = useToast()
 
 const onSubmit = async (e) => {
   e.preventDefault()
@@ -88,10 +89,16 @@ const onSubmit = async (e) => {
     })
     localStorage.setItem('token', response.token)
     
-    alert('Login réussi !')
+    toast.add({
+      title: 'Login réussi !',
+      color: 'primary'
+    })
     navigateTo('/')
   } catch (error) {
-    alert('Erreur lors du Login')
+    toast.add({
+      title: 'Erreur lors du Login',
+      color: 'error'
+    })
   }
 }
 </script>
