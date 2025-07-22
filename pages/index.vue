@@ -397,7 +397,7 @@ defineExpose({ todayUserFriendly })
 
         <div
           class="flex items-center mb-8 shadow-2xl cursor-pointer"
-          :class="activeSection === 'planning' ? 'ring-2 ring-blue-500 bg-blue-50' : ''"
+          :class="activeSection === 'planning' ? 'ring-2 ring-red-500 bg-red-50' : ''"
           @click="activeSection = 'planning'"
           style="padding:5px;border-style: solid;border-width:1px;border-radius:5px;border-color:black;background-color: white;">
           <img src="../assets/image3.png" alt="avatar" class="w-12 h-12 rounded-full mr-4" />
@@ -413,12 +413,12 @@ defineExpose({ todayUserFriendly })
 
         <div
           class="flex items-center mb-8 shadow-2xl cursor-pointer"
-          :class="activeSection === 'rappels' ? 'ring-2 ring-blue-500 bg-blue-50' : ''"
+          :class="activeSection === 'rappels' ? 'ring-2 ring-yellow-500 bg-yellow-50' : ''"
           @click="activeSection = 'rappels'"
           style="padding:5px;border-style: solid;border-width:1px;border-radius:5px;border-color:black;background-color: white;">
           <img src="../assets/image2.png" alt="avatar" class="w-12 h-12 rounded-full mr-4" />
           <div>
-            <div class="font-bold">Rappels</div>
+            <div class="font-bold">Rappels & Relances</div>
             <div class="text-xs text-gray-500">Contenu , périodicité ...</div>
           </div>
           <div
